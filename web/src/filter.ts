@@ -217,7 +217,7 @@ function message_matches_search_term(message: Message, operator: string, operand
             return _.isEqual(operand_ids, user_ids);
         }
 
-        case "dm-including": {
+        case "dm-with": {
             const operand_ids = people.pm_with_operand_ids(operand);
             if (!operand_ids) {
                 return false;
@@ -228,6 +228,8 @@ function message_matches_search_term(message: Message, operator: string, operand
             }
             return user_ids.includes(operand_ids[0]);
         }
+        case "dm-including":
+            return message_matches_search_term(message, "dm-with", operand);
     }
 
     return true; // unknown operators return true (effectively ignored)
@@ -262,8 +264,12 @@ export class Filter {
         }
 
         if (operator === "group-pm-with") {
-            // "group-pm-with:" was replaced with "dm-including:"
-            return "dm-including";
+            return "dm-with";
+        }
+
+        if (operator === "dm-including") {
+            // old legacy operator → map to new dm-with
+            return "dm-with";
         }
 
         if (operator === "from") {
@@ -305,9 +311,10 @@ export class Filter {
                     operand = people.my_current_email();
                 }
                 break;
-            case "dm-including":
+            case "dm-with":
                 operand = operand.toString().toLowerCase();
                 break;
+
             case "search":
                 // The mac app automatically substitutes regular quotes with curly
                 // quotes when typing in the search bar.  Curly quotes don't trigger our
